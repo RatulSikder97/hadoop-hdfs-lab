@@ -1,0 +1,55 @@
+# Alternative cluster using the OFFICIAL Apache Hadoop images (3.4.1) instead of
+# the older bde2020 images. Unlike bde2020, each role is selected via `command`,
+# config comes from ./config.apache, and a real NodeManager is included so YARN
+# runs actual containers (not just local mode).
+#
+#   Start:  docker compose -f docker-compose.apache.yml up -d
+#   Stop:   docker compose -f docker-compose.apache.yml down
+#
+# Note: the apache/hadoop image may not ship python3 — if you run the Streaming
+# job here, install it first (see setup-python.sh, adjusting container names),
+# and the streaming jar is at /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.4.1.jar
+services:
+  namenode:
+    image: apache/hadoop:3.4.1
+    hostname: namenode
+    container_name: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - "9870:9870"   # NameNode web UI
+      - "8020:8020"   # HDFS RPC
+    env_file:
+      - ./config.apache
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+
+  datanode:
+    image: apache/hadoop:3.4.1
+    container_name: datanode
+    command: ["hdfs", "datanode"]
+    depends_on:
+      - namenode
+    env_file:
+      - ./config.apache
+
+  resourcemanager:
+    image: apache/hadoop:3.4.1
+    hostname: resourcemanager
+    container_name: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - "8088:8088"   # YARN web UI
+    depends_on:
+      - namenode
+      - datanode
+    env_file:
+      - ./config.apache
+
+  nodemanager:
+    image: apache/hadoop:3.4.1
+    container_name: nodemanager
+    command: ["yarn", "nodemanager"]
+    depends_on:
+      - resourcemanager
+    env_file:
+      - ./config.apache
