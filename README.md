@@ -17,11 +17,11 @@ A single-node Hadoop cluster (HDFS + YARN) run in Docker Compose, used to explor
 | `Dockerfile.python` | Layers `python3` onto the base images (needed for Streaming) |
 | `mapper.py` | MapReduce **mapper** — emits `word \t 1` |
 | `reducer.py` | MapReduce **reducer** — sums counts per word |
-| `rebuild.sh` | Build images (with python3) and start the cluster |
-| `task2.sh` | Task 2 — block-splitting experiment + `fsck` |
-| `task3.sh` | Task 3 — submit the Python MapReduce job |
-| `save-output.sh` | Copy the job result out of HDFS to the host |
-| `install-python.sh` | (fallback) install python3 into running containers |
+| `start-cluster.sh` | Build images (with python3) and start the cluster |
+| `run-block-splitting.sh` | Task 2 — block-splitting experiment + `fsck` |
+| `run-wordcount.sh` | Task 3 — submit the Python MapReduce job |
+| `fetch-output.sh` | Copy the job result out of HDFS to the host |
+| `setup-python.sh` | (fallback) install python3 into running containers |
 | `sample-output.txt` | Trimmed word-count result (full output is generated) |
 
 ---
@@ -40,7 +40,7 @@ All commands are run from this directory.
 ### 1. Start the cluster (builds images with python3 baked in)
 
 ```bash
-sudo bash rebuild.sh
+sudo bash start-cluster.sh
 ```
 
 Web UIs once it's up: NameNode <http://localhost:9870> · YARN <http://localhost:8088>
@@ -51,7 +51,7 @@ Generates a ~12 MB text file and uploads it to HDFS with a **forced 1 MB block
 size**, then runs `fsck` to show how it is split into blocks.
 
 ```bash
-sudo bash task2.sh
+sudo bash run-block-splitting.sh
 ```
 
 ### 3. Task 3 — Python MapReduce (word count)
@@ -60,13 +60,13 @@ Submits `mapper.py` + `reducer.py` to the cluster via Hadoop Streaming and print
 the top of the result.
 
 ```bash
-sudo bash task3.sh
+sudo bash run-wordcount.sh
 ```
 
 Save the full result to the host:
 
 ```bash
-sudo bash save-output.sh      # writes wordcount.txt
+sudo bash fetch-output.sh      # writes wordcount.txt
 ```
 
 ### 4. Cleanup
