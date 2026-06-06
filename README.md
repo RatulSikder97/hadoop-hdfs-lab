@@ -14,7 +14,6 @@ A single-node Hadoop cluster (HDFS + YARN) run in Docker Compose, used to explor
 |------|---------|
 | `docker-compose.yml` | Defines the 3-node cluster (bde2020 images + python3) |
 | `hadoop.env` | Hadoop / HDFS / YARN configuration |
-| `apache-cluster/` | Alternative cluster on official **apache/hadoop:3.4.1** images (+ NodeManager) |
 | `Dockerfile.python` | Layers `python3` onto the base images (needed for Streaming) |
 | `mapper.py` | MapReduce **mapper** — emits `word \t 1` |
 | `reducer.py` | MapReduce **reducer** — sums counts per word |
@@ -24,6 +23,7 @@ A single-node Hadoop cluster (HDFS + YARN) run in Docker Compose, used to explor
 | `fetch-output.sh` | Copy the job result out of HDFS to the host |
 | `setup-python.sh` | (fallback) install python3 into running containers |
 | `sample-output.txt` | Trimmed word-count result (full output is generated) |
+| `apache-cluster/` | Alternative cluster on official **apache/hadoop:3.4.1** images (+ NodeManager) |
 
 ---
 
