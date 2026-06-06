@@ -1,3 +1,7 @@
+# Single-node Hadoop cluster (HDFS + YARN) for the Big Data lab.
+# Three services — namenode, datanode, resourcemanager — each built from
+# Dockerfile.python so the base bde2020 images also include python3.
+# Start with: docker compose up -d   (or ./start-cluster.sh)
 services:
   namenode:
     build:

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Task 3 — Python MapReduce word count via Hadoop Streaming.
+# Ships mapper.py/reducer.py to the namenode container, submits the streaming job
+# over the HDFS input file, and prints the first 10 lines of the result.
+#
 set -e
 DIR="$(dirname "$0")"
 

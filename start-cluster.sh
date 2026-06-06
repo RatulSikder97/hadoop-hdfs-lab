@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Rebuilds the cluster images (now with python3 baked in) and restarts.
+#
+# Builds the cluster images (Hadoop + python3) and (re)starts all containers,
+# then waits for the NameNode to leave safe mode and prints the python3 version
+# in each container so you know it's ready for the MapReduce job.
+#
 set -e
 cd "$(dirname "$0")"
 

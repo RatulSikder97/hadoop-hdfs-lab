@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+#
+# MapReduce REDUCER for the word-count job (Hadoop Streaming).
+# Receives "word<TAB>count" lines already sorted by key (Hadoop's shuffle & sort),
+# sums the counts for each word, and emits "word<TAB>total".
+#
 import sys
 
 current_word = None

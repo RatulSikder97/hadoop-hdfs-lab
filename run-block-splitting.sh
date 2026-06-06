@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Task 2 — HDFS block-splitting experiment.
+# Generates a ~12 MB text file inside the namenode container, uploads it to HDFS
+# with a forced 1 MB block size, then runs fsck to show how it splits into blocks.
+#
 set -e
 
 docker exec namenode bash -c '
