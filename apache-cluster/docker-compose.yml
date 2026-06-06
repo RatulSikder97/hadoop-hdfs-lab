@@ -3,16 +3,22 @@
 # config comes from ./config, and a real NodeManager is included so YARN runs
 # actual containers (not just local mode).
 #
+# Every service builds from ./Dockerfile, which adds python3 to the base image
+# (only if missing) so the Hadoop Streaming job can run. The image is built once
+# and shared across all services via the `image:` tag.
+#
 #   Run from this folder:
-#     Start:  docker compose up -d
+#     Start:  docker compose up -d        (first run builds the image)
 #     Stop:   docker compose down
 #
-# Note: the apache/hadoop image may not ship python3 — if you run the Streaming
-# job here, install it first, and the streaming jar is at
+# The Hadoop Streaming jar here is at
 # /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.4.1.jar
 services:
   namenode:
-    image: apache/hadoop:3.4.1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hadoop-apache-python:local
     hostname: namenode
     container_name: namenode
     command: ["hdfs", "namenode"]
@@ -25,7 +31,7 @@ services:
       ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
 
   datanode:
-    image: apache/hadoop:3.4.1
+    image: hadoop-apache-python:local
     container_name: datanode
     command: ["hdfs", "datanode"]
     depends_on:
@@ -34,7 +40,7 @@ services:
       - ./config
 
   resourcemanager:
-    image: apache/hadoop:3.4.1
+    image: hadoop-apache-python:local
     hostname: resourcemanager
     container_name: resourcemanager
     command: ["yarn", "resourcemanager"]
@@ -47,7 +53,7 @@ services:
       - ./config
 
   nodemanager:
-    image: apache/hadoop:3.4.1
+    image: hadoop-apache-python:local
     container_name: nodemanager
     command: ["yarn", "nodemanager"]
     depends_on:
