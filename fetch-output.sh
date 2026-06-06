@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Pulls the Task 3 word-count result out of HDFS and saves it next to this script.
-set -e
+#
+# Pull the Task 3 word-count result out of HDFS and save it next to this script
+# as wordcount.txt, then print the first 20 lines.
+#
+set -euo pipefail
 DIR="$(dirname "$0")"
 
-# Copy the result from HDFS to the container's local /tmp
-docker exec namenode hdfs dfs -get -f /user/student/output_python/part-00000 /tmp/wordcount.txt
+OUTPUT="/user/student/output_python/part-00000"
 
-# Copy it from the container onto the host, beside this script
+echo "==> Copying the result out of HDFS to the host"
+docker exec namenode hdfs dfs -get -f "$OUTPUT" /tmp/wordcount.txt
 docker cp namenode:/tmp/wordcount.txt "$DIR/wordcount.txt"
 
-echo "Saved to: $DIR/wordcount.txt"
-echo "----- first 20 lines -----"
+echo "==> Saved to $DIR/wordcount.txt"
+echo "==> First 20 lines"
 head -n 20 "$DIR/wordcount.txt"

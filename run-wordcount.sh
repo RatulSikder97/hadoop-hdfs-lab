@@ -1,37 +1,43 @@
 #!/usr/bin/env bash
 #
-# Task 3 — Python MapReduce word count via Hadoop Streaming.
-# Ships mapper.py/reducer.py to the namenode container, submits the streaming job
-# over the HDFS input file, and prints the first 10 lines of the result.
+# Task 3 - Python MapReduce word count via Hadoop Streaming.
+# Ship mapper.py/reducer.py to the namenode container, submit the streaming job
+# over the HDFS input file, and print the first 10 lines of the result.
 #
-set -e
+set -euo pipefail
 DIR="$(dirname "$0")"
 
-# Copy the Python scripts into the namenode container
+STREAMING_JAR="/opt/hadoop-3.2.1/share/hadoop/tools/lib/hadoop-streaming-3.2.1.jar"
+INPUT="/user/student/hdfs_input/large_dataset.txt"
+OUTPUT="/user/student/output_python"
+
+echo "==> Copying mapper.py and reducer.py into the namenode container"
 docker cp "$DIR/mapper.py"  namenode:/tmp/mapper.py
 docker cp "$DIR/reducer.py" namenode:/tmp/reducer.py
 
+echo "==> Submitting the Hadoop Streaming job"
 docker exec namenode bash -c '
-# Run from a fresh, clean working dir owned by this process (avoids the
-# sticky-bit permission clash that /tmp causes during job-jar unpacking)
-rm -rf /tmp/wc_job
-mkdir -p /tmp/wc_job
-cp /tmp/mapper.py /tmp/reducer.py /tmp/wc_job/
-cd /tmp/wc_job
-chmod +x mapper.py reducer.py
+  set -e
 
-# Hadoop refuses to write to an existing output dir, so clear it first
-hdfs dfs -rm -r -f /user/student/output_python
+  # Run from a fresh, clean working dir owned by this process to avoid the
+  # sticky-bit permission clash that /tmp causes during job-jar unpacking.
+  rm -rf /tmp/wc_job
+  mkdir -p /tmp/wc_job
+  cp /tmp/mapper.py /tmp/reducer.py /tmp/wc_job/
+  cd /tmp/wc_job
+  chmod +x mapper.py reducer.py
 
-# Submit the Python MapReduce job via Hadoop Streaming.
-# -files ships the scripts to every task via the distributed cache.
-hadoop jar /opt/hadoop-3.2.1/share/hadoop/tools/lib/hadoop-streaming-3.2.1.jar \
-  -files mapper.py,reducer.py \
-  -mapper "python3 mapper.py" \
-  -reducer "python3 reducer.py" \
-  -input /user/student/hdfs_input/large_dataset.txt \
-  -output /user/student/output_python
+  # Hadoop refuses to write to an existing output dir, so clear it first.
+  hdfs dfs -rm -r -f '"$OUTPUT"'
+
+  # -files ships the scripts to every task via the distributed cache.
+  hadoop jar '"$STREAMING_JAR"' \
+    -files mapper.py,reducer.py \
+    -mapper "python3 mapper.py" \
+    -reducer "python3 reducer.py" \
+    -input '"$INPUT"' \
+    -output '"$OUTPUT"'
 '
 
-# Read the result back from HDFS
-docker exec namenode hdfs dfs -cat /user/student/output_python/part-00000 | head -n 10
+echo "==> First 10 lines of the result"
+docker exec namenode hdfs dfs -cat "$OUTPUT/part-00000" | head -n 10

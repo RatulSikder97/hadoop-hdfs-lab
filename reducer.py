@@ -1,34 +1,36 @@
 #!/usr/bin/env python3
-#
-# MapReduce REDUCER for the word-count job (Hadoop Streaming).
-# Receives "word<TAB>count" lines already sorted by key (Hadoop's shuffle & sort),
-# sums the counts for each word, and emits "word<TAB>total".
-#
+"""MapReduce reducer for the word-count job (Hadoop Streaming).
+
+Reads "word<TAB>count" pairs from standard input. Hadoop's shuffle-and-sort
+phase guarantees the pairs arrive grouped and sorted by word, so the reducer
+just sums consecutive counts for the same word and emits "word<TAB>total".
+"""
 import sys
 
-current_word = None
-current_count = 0
 
-# The Reducer receives sorted input from Hadoop via standard input
-for line in sys.stdin:
-    line = line.strip()
-    word, count = line.split('\t', 1)
+def main():
+    current_word = None
+    current_count = 0
 
-    try:
-        count = int(count)
-    except ValueError:
-        continue
+    for line in sys.stdin:
+        word, _, count = line.strip().partition("\t")
+        try:
+            count = int(count)
+        except ValueError:
+            continue  # skip malformed lines
 
-    # If the word matches the previous word, add to the count
-    if current_word == word:
-        current_count += count
-    else:
-        # If it's a new word, output the previous word's total count
-        if current_word:
-            print('%s\t%s' % (current_word, current_count))
-        current_word = word
-        current_count = count
+        if word == current_word:
+            current_count += count
+        else:
+            if current_word is not None:
+                print("%s\t%s" % (current_word, current_count))
+            current_word = word
+            current_count = count
 
-# Output the very last word
-if current_word == word:
-    print('%s\t%s' % (current_word, current_count))
+    # Emit the final word once the input is exhausted.
+    if current_word is not None:
+        print("%s\t%s" % (current_word, current_count))
+
+
+if __name__ == "__main__":
+    main()

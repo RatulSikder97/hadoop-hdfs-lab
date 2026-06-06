@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
-# Installs python3 into the Hadoop containers.
-# These images run Debian Stretch (EOL), so apt is repointed at archive.debian.org.
-set -e
+#
+# Fallback: install python3 into already-running bde2020 containers.
+# Those images run Debian Stretch (EOL), so apt is first repointed at
+# archive.debian.org. Not needed when the cluster is built via start-cluster.sh,
+# which bakes python3 into the image (see Dockerfile.python).
+#
+set -euo pipefail
 
-fix_and_install() {
-  local c="$1"
-  echo "=== [$c] repointing apt to archive.debian.org and installing python3 ==="
-  docker exec "$c" bash -c '
+install_python() {
+  local container="$1"
+  echo "==> [$container] repointing apt to archive.debian.org and installing python3"
+  docker exec "$container" bash -c '
+    set -e
     sed -i \
       -e "s|http://deb.debian.org/debian|http://archive.debian.org/debian|g" \
       -e "s|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g" \
@@ -18,6 +23,6 @@ fix_and_install() {
   '
 }
 
-fix_and_install namenode
-fix_and_install datanode
-echo "=== done ==="
+install_python namenode
+install_python datanode
+echo "==> Done"

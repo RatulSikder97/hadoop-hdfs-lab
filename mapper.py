@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-#
-# MapReduce MAPPER for the word-count job (Hadoop Streaming).
-# Reads text on stdin, splits each line into words, and emits "word<TAB>1" per
-# word. It does no counting — summing is the reducer's job.
-#
+"""MapReduce mapper for the word-count job (Hadoop Streaming).
+
+Reads text from standard input, splits each line into words, and emits one
+"word<TAB>1" pair per word. No counting is done here - that is the reducer's job.
+"""
 import sys
 
-# The Mapper reads data line-by-line from standard input
-for line in sys.stdin:
-    line = line.strip()
-    words = line.split()
-    for word in words:
-        print('%s\t1' % word)
+
+def main():
+    for line in sys.stdin:
+        for word in line.strip().split():
+            print("%s\t1" % word)
+
+
+if __name__ == "__main__":
+    main()
