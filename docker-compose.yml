@@ -1,0 +1,45 @@
+services:
+  namenode:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+      args:
+        BASE_IMAGE: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    image: hadoop-namenode-python:local
+    container_name: namenode
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+
+  datanode:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+      args:
+        BASE_IMAGE: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: hadoop-datanode-python:local
+    container_name: datanode
+    depends_on:
+      - namenode
+    env_file:
+      - ./hadoop.env
+
+  resourcemanager:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+      args:
+        BASE_IMAGE: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    image: hadoop-resourcemanager-python:local
+    container_name: resourcemanager
+    ports:
+      - "8088:8088"
+    depends_on:
+      - namenode
+      - datanode
+    env_file:
+      - ./hadoop.env

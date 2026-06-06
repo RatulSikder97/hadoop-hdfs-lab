@@ -1,0 +1,16 @@
+# Adds python3 to the bde2020 Hadoop images.
+# BASE_IMAGE is supplied per-service from docker-compose.yml.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+# These images run Debian Stretch (EOL), so its packages now live on
+# archive.debian.org. Repoint apt there, then install python3.
+RUN sed -i \
+      -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
+      -e 's|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g' \
+      -e '/stretch-updates/d' \
+      /etc/apt/sources.list \
+ && apt-get -o Acquire::Check-Valid-Until=false update \
+ && apt-get install -y python3 \
+ && rm -rf /var/lib/apt/lists/* \
+ && python3 --version
