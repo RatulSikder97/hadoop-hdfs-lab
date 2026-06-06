@@ -14,8 +14,7 @@ A single-node Hadoop cluster (HDFS + YARN) run in Docker Compose, used to explor
 |------|---------|
 | `docker-compose.yml` | Defines the 3-node cluster (bde2020 images + python3) |
 | `hadoop.env` | Hadoop / HDFS / YARN configuration |
-| `docker-compose.apache.yml` | Alternative cluster on official **apache/hadoop:3.4.1** images (+ NodeManager) |
-| `config.apache` | Config for the Apache-image cluster |
+| `apache-cluster/` | Alternative cluster on official **apache/hadoop:3.4.1** images (+ NodeManager) |
 | `Dockerfile.python` | Layers `python3` onto the base images (needed for Streaming) |
 | `mapper.py` | MapReduce **mapper** — emits `word \t 1` |
 | `reducer.py` | MapReduce **reducer** — sums counts per word |
@@ -48,13 +47,12 @@ sudo bash start-cluster.sh
 Web UIs once it's up: NameNode <http://localhost:9870> · YARN <http://localhost:8088>
 
 > **Alternative — newer Apache images:** to run the cluster on the official
-> `apache/hadoop:3.4.1` images (with a real NodeManager / working YARN) instead:
+> `apache/hadoop:3.4.1` images (with a real NodeManager / working YARN) instead,
+> use the `apache-cluster/` folder:
 > ```bash
-> sudo docker compose -f docker-compose.apache.yml up -d
+> cd apache-cluster && sudo docker compose up -d
 > ```
-> Config for it lives in `config.apache`. Note this image may not ship `python3`,
-> so install it before running the Streaming job, and its streaming jar is at
-> `/opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-3.4.1.jar`.
+> See `apache-cluster/README.md` for details.
 
 ### 2. Task 2 — HDFS block splitting
 
