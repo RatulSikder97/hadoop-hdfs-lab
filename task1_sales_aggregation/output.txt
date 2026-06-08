@@ -1,0 +1,4 @@
+Laptop	2500
+Monitor	300
+Phone	700
+Tablet	700

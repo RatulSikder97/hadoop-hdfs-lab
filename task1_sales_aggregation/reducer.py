@@ -15,9 +15,9 @@ for line in sys.stdin:
         current_sum += price
     else:
         if current_product is not None:
-            print(f"{current_product}\t{current_sum}")
+            print("{}\t{}".format(current_product, current_sum))
         current_product = product
         current_sum = price
 
 if current_product is not None:
-    print(f"{current_product}\t{current_sum}")
+    print("{}\t{}".format(current_product, current_sum))

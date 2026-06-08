@@ -9,4 +9,4 @@ for line in sys.stdin:
     if len(parts) != 2:
         continue
     product, price = parts[0].strip(), parts[1].strip()
-    print(f"{product}\t{price}")
+    print("{}\t{}".format(product, price))

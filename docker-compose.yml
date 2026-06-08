@@ -26,6 +26,7 @@ services:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
     container_name: resourcemanager
     platform: linux/amd64
+    restart: unless-stopped
     ports:
       - "8088:8088"
     depends_on:
@@ -33,3 +34,10 @@ services:
       - datanode
     env_file:
       - ./hadoop.env
+    environment:
+      # JVM safepoint crash workaround for OpenJDK 8 running under qemu
+      # user-mode emulation (amd64-on-arm64 Apple Silicon).
+      # Disable biased locking + force SerialGC to avoid the
+      # 'guarantee(PageArmed == 0) failed: invariant' abort.
+      YARN_RESOURCEMANAGER_OPTS: "-XX:-UseBiasedLocking -XX:+UseSerialGC -XX:-UsePerfData"
+      HADOOP_OPTS: "-XX:-UseBiasedLocking -XX:+UseSerialGC -XX:-UsePerfData"
