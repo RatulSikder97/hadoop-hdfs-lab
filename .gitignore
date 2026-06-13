@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor / OS cruft
+*.swp
+*~
+
+# Generated reports / local artifacts
+*.docx
+screenshots/

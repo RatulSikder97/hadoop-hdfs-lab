@@ -1,3 +1,0 @@
-hadoop is fast
-hadoop is scalable
-python runs hadoop streaming
