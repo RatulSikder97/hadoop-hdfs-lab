@@ -10,7 +10,7 @@
 ![HDFS](https://img.shields.io/badge/HDFS-Distributed_FS-FF6F00?style=for-the-badge)
 
 *A collection of lab work building and operating multi-node Hadoop clusters on Docker —*
-*from HDFS internals to fault tolerance and distributed MapReduce.*
+*from HDFS internals to fault tolerance, distributed MapReduce, and a real multi-machine cluster over a LAN.*
 
 </div>
 
@@ -57,6 +57,25 @@ git checkout lab-2
 
 </td>
 </tr>
+<tr>
+<td colspan="2" valign="top">
+
+### 🌐 [Lab 3 — Multi-PC HDFS Cluster over LAN](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-3)
+
+Take the cluster off a single machine — run the NameNode and three DataNodes on **four separate physical PCs** across a real LAN.
+
+- 🖥️ NameNode + **3 DataNodes**, one per machine (not Docker replicas)
+- 🌐 **Cross-host networking** — LAN-IP `fs.defaultFS`, bind-host vs. advertised host, hostname-based block transfer
+- 📦 **replication = 3** — every block on all three nodes; survives two going offline
+- 🔎 Guided `check-cluster.sh` — step-by-step health & verification
+- 🧳 One portable `datanode-bundle.tgz` to drop on every DataNode PC
+
+```bash
+git checkout lab-3
+```
+
+</td>
+</tr>
 </table>
 
 ---
@@ -69,13 +88,15 @@ git clone https://github.com/RatulSikder97/hadoop-hdfs-lab.git
 cd hadoop-hdfs-lab
 
 # switch to the lab you want
-git checkout lab-1     # or: git checkout lab-2
+git checkout lab-1     # or: lab-2, lab-3
 
 # follow that lab's README to bring up the cluster
 docker compose up -d --build
 ```
 
 > **Prerequisites:** Docker & Docker Compose. Each branch has its own detailed `README.md`.
+> **Lab 3** spans multiple machines, so it uses its own per-role compose files
+> (`docker-compose.namenode.yml` / `docker-compose.datanode.yml`) instead of the single command above.
 
 ---
 
@@ -93,6 +114,6 @@ docker compose up -d --build
 
 <div align="center">
 
-🌿 **Branches:** [`main`](https://github.com/RatulSikder97/hadoop-hdfs-lab) · [`lab-1`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-1) · [`lab-2`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-2)
+🌿 **Branches:** [`main`](https://github.com/RatulSikder97/hadoop-hdfs-lab) · [`lab-1`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-1) · [`lab-2`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-2) · [`lab-3`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-3)
 
 </div>
