@@ -1,0 +1,81 @@
+# Unified multi-PC Hadoop cluster (HDFS + YARN) driven by Compose profiles.
+# Put this SAME file on every machine; pick the role with --profile:
+#
+#   Master PC (this one, 10.100.201.155):
+#     MASTER_IP=10.100.201.155 docker compose --profile master up -d
+#
+#   Worker PC (run on each, with that PC's own LAN IP):
+#     MASTER_IP=10.100.201.155 WORKER_IP=10.100.202.31 docker compose --profile worker up -d
+#     MASTER_IP=10.100.201.155 WORKER_IP=10.100.202.49 docker compose --profile worker up -d
+#
+# Shared HDFS/YARN settings live in ./hadoop.env (next to this file).
+version: "3.8"
+
+x-hadoop-env: &hadoop-env
+  env_file: ./hadoop.env
+
+services:
+  # ---------------- MASTER PROFILE ----------------
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    hostname: namenode
+    profiles: ["master"]
+    restart: unless-stopped
+    ports:
+      - "9870:9870"   # NameNode web UI
+      - "9000:9000"   # HDFS RPC (DataNodes + clients)
+    volumes:
+      - namenode_data:/hadoop/dfs/name
+    <<: *hadoop-env
+    environment:
+      - CLUSTER_NAME=multi-pc-cluster
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    hostname: resourcemanager
+    profiles: ["master"]
+    restart: unless-stopped
+    ports:
+      - "8088:8088"   # YARN web UI
+      - "8032:8032"   # RM client RPC
+      - "8030:8030"   # scheduler
+      - "8031:8031"   # resource-tracker (remote NodeManagers register here)
+      - "8033:8033"   # RM admin
+    <<: *hadoop-env
+
+  # ---------------- WORKER PROFILE ----------------
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    hostname: datanode
+    profiles: ["worker"]
+    restart: unless-stopped
+    ports:
+      - "9864:9864"   # DataNode web UI
+      - "9866:9866"   # block data transfer
+      - "9867:9867"   # DataNode IPC
+    volumes:
+      - datanode_data:/hadoop/dfs/data
+    <<: *hadoop-env
+    environment:
+      # CRITICAL: advertise THIS PC's physical LAN IP, not the docker bridge IP.
+      - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
+      - HDFS_CONF_dfs_datanode_hostname=${WORKER_IP}
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    hostname: nodemanager
+    profiles: ["worker"]
+    restart: unless-stopped
+    ports:
+      - "8042:8042"   # NodeManager web UI
+    <<: *hadoop-env
+    environment:
+      - YARN_CONF_yarn_nodemanager_hostname=${WORKER_IP}
+
+volumes:
+  namenode_data:
+  datanode_data:
