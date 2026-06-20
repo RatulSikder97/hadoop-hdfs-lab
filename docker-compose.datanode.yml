@@ -1,0 +1,32 @@
+# Runs on EACH DataNode PC. One file for every node — set DN_HOST to that
+# machine's LAN IP when you bring it up:
+#   DN_HOST=10.100.200.112 docker compose -f docker-compose.datanode.yml up -d   # DataNode 1
+#   DN_HOST=10.100.201.210 docker compose -f docker-compose.datanode.yml up -d   # DataNode 2
+#   DN_HOST=10.100.202.213 docker compose -f docker-compose.datanode.yml up -d   # DataNode 3 (edit IP)
+#
+# Needs the same hadoop.env file next to it.
+# If the DataNode PC is Apple Silicon, the platform pin below forces emulation;
+# on a normal x86 Linux/Windows PC it runs natively.
+services:
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    hostname: datanode
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "9864:9864"   # DataNode web UI
+      - "9866:9866"   # data transfer (clients read/write blocks here)
+      - "9867:9867"   # DataNode IPC
+    volumes:
+      - datanode_data:/hadoop/dfs/data
+    environment:
+      # Advertise THIS host's LAN IP so the NameNode/clients can reach the data ports.
+      # Falls back to the friend's PC IP if DN_HOST isn't set (keeps old workflow working).
+      HDFS_CONF_dfs_datanode_hostname: "${DN_HOST:-10.100.200.112}"
+      HADOOP_OPTS: "-XX:-UseBiasedLocking -XX:+UseSerialGC -XX:-UsePerfData"
+    env_file:
+      - ./hadoop.env
+
+volumes:
+  datanode_data:
