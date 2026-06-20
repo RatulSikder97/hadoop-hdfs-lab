@@ -67,6 +67,7 @@ Take the cluster off a single machine — run the NameNode and three DataNodes o
 - 🖥️ NameNode + **3 DataNodes**, one per machine (not Docker replicas)
 - 🌐 **Cross-host networking** — LAN-IP `fs.defaultFS`, bind-host vs. advertised host, hostname-based block transfer
 - 📦 **replication = 3** — every block on all three nodes; survives two going offline
+- 🧙 Interactive `cluster-setup.sh` wizard — generates every config from prompts
 - 🔎 Guided `check-cluster.sh` — step-by-step health & verification
 - 🧳 One portable `datanode-bundle.tgz` to drop on every DataNode PC
 
