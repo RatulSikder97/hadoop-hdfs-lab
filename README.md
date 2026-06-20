@@ -1,84 +1,95 @@
-# Multi-PC HDFS Cluster — lab-3 (3 DataNodes)
+# Multi-PC HDFS Cluster — Distributed Across Real Machines (Lab 3)
 
-A NameNode on this PC and **three** DataNodes on other PCs, over the LAN.
-Replication is set to **3**, so every block is copied to all three nodes.
+A genuinely distributed Apache Hadoop 3.2.1 HDFS cluster whose nodes run on
+**separate physical PCs** over a LAN — one NameNode and three DataNodes, four
+machines in total. Where Lab 2 scaled DataNode *replicas* on a single Docker
+host, this lab spreads them across the network and handles the real cross-host
+networking that makes HDFS work between machines.
 
-| Role     | Host             | Compose file                   |
-|----------|------------------|--------------------------------|
-| NameNode | 10.100.200.101   | docker-compose.namenode.yml    |
-| DataNode | 10.100.200.112   | docker-compose.datanode.yml    |
-| DataNode | 10.100.201.210   | docker-compose.datanode.yml    |
-| DataNode | 10.100.202.213 ¹ | docker-compose.datanode.yml    |
+## Cluster Architecture
 
-¹ Placeholder IP for the 3rd PC — replace with its real LAN IP in
-`check-cluster.sh` (`DN_IPS`). The DataNode itself needs no edit; it advertises
-whatever you pass in `DN_HOST` at start time.
+| Node       | Host (LAN IP)             | Compose file                | Role                                  |
+|------------|---------------------------|-----------------------------|---------------------------------------|
+| NameNode   | 10.100.200.101 (this Mac) | docker-compose.namenode.yml | HDFS master — namespace + block metadata |
+| DataNode 1 | 10.100.200.112            | docker-compose.datanode.yml | block storage                         |
+| DataNode 2 | 10.100.201.210            | docker-compose.datanode.yml | block storage                         |
+| DataNode 3 | 10.100.202.213 †          | docker-compose.datanode.yml | block storage                         |
 
-The same `docker-compose.datanode.yml` runs on **every** DataNode PC — you just
-tell it that machine's LAN IP via the `DN_HOST` env var at start time.
+† Placeholder — replace with the 3rd PC's real LAN IP in `check-cluster.sh`
+(`DN_IPS`). The DataNode itself needs no edit; it advertises whatever you pass
+in `DN_HOST` at start time.
 
-Shared config: `hadoop.env` (must sit next to whichever compose file you run).
+All hosts sit in the same `10.100.200.0/22` subnet (covers 10.100.200.0–
+10.100.203.255), so every machine reaches every other directly.
+`dfs.replication=3`, so every block is copied to all three DataNodes — the
+cluster survives up to **two** nodes going offline.
 
----
+The **same** `docker-compose.datanode.yml` runs on every DataNode PC; each one
+advertises its own LAN IP through the `DN_HOST` environment variable at start
+time, so there is exactly one DataNode file to maintain.
 
-## 1. NameNode — on THIS PC (10.100.200.101)
+## Prerequisites
+
+- Docker & Docker Compose on every machine
+- All machines on the same LAN/subnet, able to reach each other's IPs
+- Images run under `linux/amd64`; on Apple Silicon they run via qemu emulation
+
+## Files
+
+| File                          | Purpose                                                        |
+|-------------------------------|----------------------------------------------------------------|
+| `docker-compose.namenode.yml` | NameNode service — runs on this Mac                            |
+| `docker-compose.datanode.yml` | DataNode service — runs on every DataNode PC                   |
+| `hadoop.env`                  | Shared HDFS configuration, used by both compose files          |
+| `datanode-bundle.tgz`         | `hadoop.env` + datanode compose, zipped to copy to each PC     |
+| `check-cluster.sh`            | Step-by-step health/verification script (run on NameNode host) |
+
+## Quick Start
+
+### 1. NameNode — on this PC (10.100.200.101)
 
 ```bash
 docker compose -f docker-compose.namenode.yml up -d
 docker logs -f namenode          # watch it come up
 ```
-Web UI: http://10.100.200.101:9870  (Datanodes tab shows who has joined)
 
----
+Web UI: http://10.100.200.101:9870 — the **Datanodes** tab shows who has joined.
 
-## 2. DataNodes — on each DataNode PC
+### 2. DataNodes — on each of the 3 PCs
 
-Copy **two files** to the machine: `hadoop.env` and `docker-compose.datanode.yml`
-(put them in the same folder), then on that machine start it with **its own LAN IP**
-in `DN_HOST`:
+Copy `datanode-bundle.tgz` to the machine and unpack it (or copy `hadoop.env`
+and `docker-compose.datanode.yml` into the same folder), then start the node
+with **its own LAN IP** in `DN_HOST`:
 
 ```bash
-# DataNode 1 (10.100.200.112):
-DN_HOST=10.100.200.112 docker compose -f docker-compose.datanode.yml up -d
+tar -xzf datanode-bundle.tgz
 
-# DataNode 2 (10.100.201.210):
-DN_HOST=10.100.201.210 docker compose -f docker-compose.datanode.yml up -d
-
-# DataNode 3 (replace with its real LAN IP):
-DN_HOST=10.100.202.213 docker compose -f docker-compose.datanode.yml up -d
+DN_HOST=10.100.200.112 docker compose -f docker-compose.datanode.yml up -d   # DataNode 1
+DN_HOST=10.100.201.210 docker compose -f docker-compose.datanode.yml up -d   # DataNode 2
+DN_HOST=10.100.202.213 docker compose -f docker-compose.datanode.yml up -d   # DataNode 3 (use real IP)
 
 docker logs -f datanode
 ```
 
-`DN_HOST` is the IP the NameNode/clients use to reach this node's data ports
-(9866/9864/9867), so it **must** be that machine's real LAN IP. If you omit it,
-it defaults to `10.100.200.112` (DataNode 1).
+`DN_HOST` is the address the NameNode and clients use to reach this node's data
+ports (9866/9864/9867), so it **must** be that machine's real LAN IP. Omit it
+and it defaults to `10.100.200.112` (DataNode 1). Each DataNode dials
+`10.100.200.101:9000`, registers, and starts sending heartbeats + block reports.
 
-Each DataNode dials `10.100.200.101:9000`, registers, and starts sending
-heartbeats + block reports.
+### 3. Verify the cluster
 
-> All three example DataNode IPs are inside the same `10.100.200.0/22` subnet
-> (covers 10.100.200.0–10.100.203.255), so `.200.112`, `.201.210` and `.202.213`
-> reach each other and the NameNode directly.
+On the NameNode host:
 
----
-
-## 3. Verify the cluster
-
-On either PC:
 ```bash
-# From the NameNode host:
-docker exec namenode hdfs dfsadmin -report
-```
-With all three nodes up you should see `Live datanodes (3)` listing
-`10.100.200.112`, `10.100.201.210` and the third PC's IP.
+./check-cluster.sh           # guided, step-by-step  (-p pauses between steps)
 
-Or run the guided checker (from the NameNode host):
-```bash
-./check-cluster.sh        # or ./check-cluster.sh -p to pause between steps
+# …or the one-liner:
+docker exec namenode hdfs dfsadmin -report | grep "Live datanodes"
 ```
 
-Quick read/write test:
+With all three nodes up you should see `Live datanodes (3)`. Quick read/write
+test:
+
 ```bash
 docker exec namenode bash -lc 'echo "hello from three-pc hdfs" > /tmp/t.txt && \
   hdfs dfs -mkdir -p /test && \
@@ -86,40 +97,57 @@ docker exec namenode bash -lc 'echo "hello from three-pc hdfs" > /tmp/t.txt && \
   hdfs dfs -cat /test/t.txt'
 ```
 
----
+## How It Works — Cross-Host Networking
 
-## Firewall note
-Each DataNode PC must be able to reach **10.100.200.101:9000** (and 9870).
-This PC (and any client) must reach **every** DataNode's
-**9866/9864/9867** (e.g. `10.100.200.112:9866`, `10.100.201.210:9866`, …).
-On the same LAN these are usually open; if a write hangs at "could only be
-replicated to 0 nodes", a firewall is blocking a DataNode's 9866.
+Running HDFS across machines (rather than one Docker host) needs a handful of
+settings a single-host compose never hits. They all live in `hadoop.env`:
 
-## Networking design (why it's set up this way)
-- `fs.defaultFS` uses the LAN **IP**, not a docker service name (DNS doesn't
-  cross hosts).
-- NameNode binds `0.0.0.0` but advertises `10.100.200.101` via the
-  `*-bind-host` settings, so a port-published container still works.
-- `dfs.client.use.datanode.hostname=true` + `dfs.datanode.hostname=<LAN IP>`
-  make block read/writes reach the DataNode through published ports on any
-  Docker host (Linux, Docker Desktop, etc.).
+- **`fs.defaultFS` uses the LAN IP**, not a Docker service name — Docker's
+  internal DNS doesn't cross hosts.
+- The NameNode **binds `0.0.0.0`** (`dfs.namenode.{rpc,servicerpc,http}-bind-host`)
+  but advertises `10.100.200.101`, so a port-published container is reachable
+  from other PCs.
+- **`dfs.client.use.datanode.hostname=true`** + **`dfs.datanode.hostname=<LAN IP>`**
+  make block reads/writes reach each DataNode through its published ports.
+- **`dfs.namenode.datanode.registration.ip-hostname-check=false`** lets
+  DataNodes register by IP without reverse DNS.
+- **`HADOOP_OPTS=-XX:-UseBiasedLocking -XX:+UseSerialGC -XX:-UsePerfData`**
+  stabilises OpenJDK 8 under qemu on Apple Silicon.
 
-## If an IP changes
-- NameNode IP → edit `fs.defaultFS` in `hadoop.env`, recreate the NameNode.
-- A DataNode IP → just restart that node with the new `DN_HOST=<new IP>`
-  (no file edit needed).
+> bde2020 image env naming: `_` → `.`, `___` → `-`
+> (so `dfs_namenode_rpc___bind___host` == `dfs.namenode.rpc-bind-host`).
 
 ## Replication
-`hadoop.env` sets `dfs.replication=3`, so every block is copied to all three
-DataNodes — the cluster survives up to **two** nodes going offline. Blocks only
-reach full replication once 3 DataNodes are live; with fewer live nodes they
-stay under-replicated (HDFS heals them automatically as the rest join).
 
-Tune it to taste in `hadoop.env`:
+`hadoop.env` sets `dfs.replication=3` — every block is copied to all three
+DataNodes, surviving up to two offline. Blocks only reach full replication once
+3 DataNodes are live; with fewer, they stay under-replicated and HDFS heals them
+automatically as the rest join. Changing the factor affects **new** files only —
+re-replicate existing data with `docker exec namenode hdfs dfs -setrep -R 3 /`.
+
+Tune it in `hadoop.env`:
+
 - `=1` → spread blocks, no redundancy (max usable space)
 - `=2` → survive one node offline
 - `=3` → survive two nodes offline (current)
 
-Changing `HDFS_CONF_dfs_replication` only affects **new** files. To re-replicate
-existing data to the new factor, run e.g.
-`docker exec namenode hdfs dfs -setrep -R 3 /`.
+## Troubleshooting
+
+- **Write hangs at "could only be replicated to 0 nodes"** — a firewall is
+  blocking a DataNode's port `9866`. Each DataNode PC must reach
+  `10.100.200.101:9000` and `:9870`; this PC (and any client) must reach every
+  DataNode's `9866/9864/9867`.
+- **A DataNode's IP changed** — just restart that node with the new
+  `DN_HOST=<new IP>` (no file edit). If the **NameNode** IP changes, edit
+  `fs.defaultFS` in `hadoop.env` and recreate the NameNode.
+- **You edited `hadoop.env` or the datanode compose** — regenerate the bundle so
+  each PC gets the new config:
+  `tar -czf datanode-bundle.tgz hadoop.env docker-compose.datanode.yml`.
+
+---
+
+Part of the [Hadoop & HDFS Lab](https://github.com/RatulSikder97/hadoop-hdfs-lab) series ·
+Branches: [`main`](https://github.com/RatulSikder97/hadoop-hdfs-lab) ·
+[`lab-1`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-1) ·
+[`lab-2`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-2) ·
+[`lab-3`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-3)
