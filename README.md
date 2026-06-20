@@ -34,10 +34,46 @@ time, so there is exactly one DataNode file to maintain.
 - All machines on the same LAN/subnet, able to reach each other's IPs
 - Images run under `linux/amd64`; on Apple Silicon they run via qemu emulation
 
+## Setup — the easy way (interactive wizard)
+
+`cluster-setup.sh` generates every config file from a few prompts and can launch
+the containers — no hand-editing.
+
+**On the NameNode machine:**
+
+```bash
+./cluster-setup.sh namenode
+```
+
+It asks for the NameNode LAN IP, RPC/UI ports, how many DataNodes will join and
+each one's IP, and the replication factor — then writes `hadoop.env`, both
+compose files, `check-cluster.sh`, and `datanode-bundle.tgz`, and offers to start
+the NameNode.
+
+**On each DataNode PC** — copy `datanode-bundle.tgz` over, then:
+
+```bash
+tar -xzf datanode-bundle.tgz     # unpacks configs + the wizard
+./cluster-setup.sh datanode
+```
+
+It reuses the NameNode's `hadoop.env` (so `fs.defaultFS` and replication match),
+asks only for **this PC's LAN IP**, and starts the DataNode.
+
+**Back on the NameNode host, verify:**
+
+```bash
+./check-cluster.sh
+```
+
+> Run it with no argument (`./cluster-setup.sh`) to pick the role from a menu.
+> Prefer to wire it up by hand? The manual steps below do exactly the same thing.
+
 ## Files
 
 | File                          | Purpose                                                        |
 |-------------------------------|----------------------------------------------------------------|
+| `cluster-setup.sh`            | Interactive wizard — generates the configs below and launches  |
 | `docker-compose.namenode.yml` | NameNode service — runs on this Mac                            |
 | `docker-compose.datanode.yml` | DataNode service — runs on every DataNode PC                   |
 | `hadoop.env`                  | Shared HDFS configuration, used by both compose files          |
