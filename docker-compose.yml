@@ -96,6 +96,8 @@ services:
       - YARN_CONF_yarn_nodemanager_address=${WORKER_IP}:8041
       - YARN_CONF_yarn_nodemanager_localizer_address=0.0.0.0:8040
       - MAPRED_CONF_mapreduce_shuffle_port=13562
+      # Enable the shuffle aux-service (image ships the .class but not the list).
+      - YARN_CONF_yarn_nodemanager_aux___services=mapreduce_shuffle
 
 volumes:
   namenode_data:

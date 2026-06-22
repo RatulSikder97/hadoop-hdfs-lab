@@ -52,6 +52,10 @@ services:
       - YARN_CONF_yarn_nodemanager_address=${WORKER_IP}:8041
       - YARN_CONF_yarn_nodemanager_localizer_address=0.0.0.0:8040
       - MAPRED_CONF_mapreduce_shuffle_port=13562
+      # Enable the shuffle aux-service (the image ships the .class but not the
+      # list, so MR task containers fail with "auxService:mapreduce_shuffle
+      # does not exist"). Value keeps its underscore (env->xml mangles keys, not values).
+      - YARN_CONF_yarn_nodemanager_aux___services=mapreduce_shuffle
 
 volumes:
   datanode_data:
