@@ -42,11 +42,14 @@ services:
     <<: *hadoop-env
     environment:
       - YARN_CONF_yarn_nodemanager_hostname=${WORKER_IP:?set WORKER_IP to this PC's LAN IP}
-      # Pin NM RPC ports to fixed, PUBLISHED values. Defaults are random ports
-      # Docker never exposes, so the RM/AM can't reach the NM ("Connection
-      # refused" -> job stuck in ACCEPTED). Same ports on every worker is fine:
-      # YARN identifies NodeManagers by hostname, not IP.
-      - YARN_CONF_yarn_nodemanager_address=0.0.0.0:8041
+      # Pin NM RPC ports to fixed, PUBLISHED values (defaults are random ports
+      # Docker never exposes -> RM "Connection refused" launching the AM -> job
+      # stuck ACCEPTED). bind-host=0.0.0.0 binds all interfaces INSIDE the
+      # container, while 'address' is the ADVERTISED identity. It MUST carry
+      # ${WORKER_IP}; if you bind 0.0.0.0 in 'address' the NM advertises its
+      # container hostname ('nodemanager') and both workers collide as one node.
+      - YARN_CONF_yarn_nodemanager_bind___host=0.0.0.0
+      - YARN_CONF_yarn_nodemanager_address=${WORKER_IP}:8041
       - YARN_CONF_yarn_nodemanager_localizer_address=0.0.0.0:8040
       - MAPRED_CONF_mapreduce_shuffle_port=13562
 
