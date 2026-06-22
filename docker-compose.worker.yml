@@ -1,15 +1,3 @@
-# Worker node (DataNode + NodeManager) for the multi-PC Hadoop cluster.
-# Copy this file + hadoop.env to EACH worker PC, then start it with that
-# machine's OWN LAN IP in WORKER_IP:
-#
-#   On 10.100.202.31:
-#     WORKER_IP=10.100.202.31 docker compose -f docker-compose.worker.yml up -d
-#   On 10.100.202.49:
-#     WORKER_IP=10.100.202.49 docker compose -f docker-compose.worker.yml up -d
-#
-# The NameNode/ResourceManager (Master) location comes from ./hadoop.env
-# (CORE_CONF_fs_defaultFS + YARN_CONF_yarn_resourcemanager_hostname -> 10.100.201.155).
-
 x-hadoop-env: &hadoop-env
   env_file: ./hadoop.env
 
@@ -20,9 +8,9 @@ services:
     hostname: datanode
     restart: unless-stopped
     ports:
-      - "9864:9864"   # DataNode web UI
-      - "9866:9866"   # block data transfer
-      - "9867:9867"   # DataNode IPC
+      - "9864:9864" # DataNode web UI
+      - "9866:9866" # block data transfer
+      - "9867:9867" # DataNode IPC
     volumes:
       - datanode_data:/hadoop/dfs/data
     <<: *hadoop-env
@@ -37,7 +25,7 @@ services:
     hostname: nodemanager
     restart: unless-stopped
     ports:
-      - "8042:8042"   # NodeManager web UI
+      - "8042:8042" # NodeManager web UI
     <<: *hadoop-env
     environment:
       - YARN_CONF_yarn_nodemanager_hostname=${WORKER_IP:?set WORKER_IP to this PC's LAN IP}

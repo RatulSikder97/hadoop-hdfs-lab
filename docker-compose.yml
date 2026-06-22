@@ -1,12 +1,13 @@
 # Unified multi-PC Hadoop cluster (HDFS + YARN) driven by Compose profiles.
 # Put this SAME file on every machine; pick the role with --profile:
 #
-#   Master PC (this one, 10.100.201.155):
-#     MASTER_IP=10.100.201.155 docker compose --profile master up -d
+#   Master PC (this one, 10.100.201.151):
+#     MASTER_IP=10.100.201.151 docker compose --profile master up -d
 #
-#   Worker PC (run on each, with that PC's own LAN IP):
-#     MASTER_IP=10.100.201.155 WORKER_IP=10.100.202.31 docker compose --profile worker up -d
-#     MASTER_IP=10.100.201.155 WORKER_IP=10.100.202.49 docker compose --profile worker up -d
+#   Worker PC (run on each, with that PC's own LAN IP). On Docker Desktop give
+#   every EXTRA worker a unique DN_XFER_PORT so the NameNode can tell them apart:
+#     WORKER_IP=10.100.201.161                   docker compose --profile worker up -d
+#     WORKER_IP=10.100.201.133 DN_XFER_PORT=19866 docker compose --profile worker up -d
 #
 # Shared HDFS/YARN settings live in ./hadoop.env (next to this file).
 version: "3.8"
@@ -53,9 +54,9 @@ services:
     profiles: ["worker"]
     restart: unless-stopped
     ports:
-      - "9864:9864"   # DataNode web UI
-      - "9866:9866"   # block data transfer
-      - "9867:9867"   # DataNode IPC
+      - "9864:9864"                                    # DataNode web UI
+      - "${DN_XFER_PORT:-9866}:${DN_XFER_PORT:-9866}"  # block data transfer (UNIQUE per worker)
+      - "9867:9867"                                    # DataNode IPC
     volumes:
       - datanode_data:/hadoop/dfs/data
     <<: *hadoop-env
@@ -63,6 +64,13 @@ services:
       # CRITICAL: advertise THIS PC's physical LAN IP, not the docker bridge IP.
       - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
       - HDFS_CONF_dfs_datanode_hostname=${WORKER_IP}
+      # On Docker Desktop EVERY container self-reports the same internal gateway
+      # IP (192.168.65.1), so two workers would register the identical xfer
+      # address and the NameNode would treat them as ONE node (they evict each
+      # other). Give each worker a UNIQUE data-transfer port so its identity
+      # (ip:port) stays distinct and both remain live. Worker 1 keeps the
+      # default 9866; each extra worker sets DN_XFER_PORT (e.g. 19866).
+      - HDFS_CONF_dfs_datanode_address=0.0.0.0:${DN_XFER_PORT:-9866}
 
   nodemanager:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
