@@ -79,10 +79,20 @@ services:
     profiles: ["worker"]
     restart: unless-stopped
     ports:
-      - "8042:8042"   # NodeManager web UI
+      - "8042:8042"     # NodeManager web UI
+      - "8041:8041"     # container-management RPC — RM connects HERE to launch the AppMaster
+      - "8040:8040"     # localizer
+      - "13562:13562"   # MapReduce shuffle (reducers fetch map output)
     <<: *hadoop-env
     environment:
       - YARN_CONF_yarn_nodemanager_hostname=${WORKER_IP}
+      # Pin the NM's RPC ports to fixed, PUBLISHED values. By default these are
+      # random ports Docker never exposes, so the RM/AM cannot reach the NM
+      # ("Connection refused" -> job stuck in ACCEPTED). Same ports on every
+      # worker is fine: YARN identifies NodeManagers by hostname, not IP.
+      - YARN_CONF_yarn_nodemanager_address=0.0.0.0:8041
+      - YARN_CONF_yarn_nodemanager_localizer_address=0.0.0.0:8040
+      - MAPRED_CONF_mapreduce_shuffle_port=13562
 
 volumes:
   namenode_data:

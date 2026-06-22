@@ -1,3 +1,11 @@
+# Standalone WORKER compose — run on each worker PC (PC-B, PC-C).
+#   WORKER_IP=<this PC's LAN IP>                     docker compose -f docker-compose.worker.yml up -d
+#   WORKER_IP=<this PC's LAN IP> DN_XFER_PORT=19866  docker compose -f docker-compose.worker.yml up -d
+#
+# Give EACH extra worker a UNIQUE DN_XFER_PORT: Docker Desktop reports the same
+# internal IP (192.168.65.1) on every PC, so DataNodes need distinct ports to
+# avoid colliding. Shared HDFS/YARN settings live in ./hadoop.env (next to this).
+
 x-hadoop-env: &hadoop-env
   env_file: ./hadoop.env
 
@@ -8,9 +16,9 @@ services:
     hostname: datanode
     restart: unless-stopped
     ports:
-      - "9864:9864" # DataNode web UI
-      - "9866:9866" # block data transfer
-      - "9867:9867" # DataNode IPC
+      - "9864:9864"                                    # DataNode web UI
+      - "${DN_XFER_PORT:-9866}:${DN_XFER_PORT:-9866}"  # block data transfer (UNIQUE per worker)
+      - "9867:9867"                                    # DataNode IPC
     volumes:
       - datanode_data:/hadoop/dfs/data
     <<: *hadoop-env
@@ -18,6 +26,8 @@ services:
       # CRITICAL: advertise THIS PC's physical LAN IP, not the docker bridge IP.
       - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
       - HDFS_CONF_dfs_datanode_hostname=${WORKER_IP:?set WORKER_IP to this PC's LAN IP}
+      # Unique data-transfer port so two workers don't register as the same node.
+      - HDFS_CONF_dfs_datanode_address=0.0.0.0:${DN_XFER_PORT:-9866}
 
   nodemanager:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
@@ -25,10 +35,20 @@ services:
     hostname: nodemanager
     restart: unless-stopped
     ports:
-      - "8042:8042" # NodeManager web UI
+      - "8042:8042"     # NodeManager web UI
+      - "8041:8041"     # container-management RPC — RM connects HERE to launch the AppMaster
+      - "8040:8040"     # localizer
+      - "13562:13562"   # MapReduce shuffle (reducers fetch map output)
     <<: *hadoop-env
     environment:
       - YARN_CONF_yarn_nodemanager_hostname=${WORKER_IP:?set WORKER_IP to this PC's LAN IP}
+      # Pin NM RPC ports to fixed, PUBLISHED values. Defaults are random ports
+      # Docker never exposes, so the RM/AM can't reach the NM ("Connection
+      # refused" -> job stuck in ACCEPTED). Same ports on every worker is fine:
+      # YARN identifies NodeManagers by hostname, not IP.
+      - YARN_CONF_yarn_nodemanager_address=0.0.0.0:8041
+      - YARN_CONF_yarn_nodemanager_localizer_address=0.0.0.0:8040
+      - MAPRED_CONF_mapreduce_shuffle_port=13562
 
 volumes:
   datanode_data:
