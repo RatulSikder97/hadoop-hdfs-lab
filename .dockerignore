@@ -1,0 +1,6 @@
+# Keep the image build context small - code and data are volume-mounted
+.venv
+__pycache__
+*.pdf
+archive.zip
+.DS_Store

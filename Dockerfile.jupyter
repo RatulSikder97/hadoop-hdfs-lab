@@ -1,0 +1,21 @@
+# JupyterLab on top of the same Spark 4.1.2 image so the notebook kernel
+# (driver) exactly matches the cluster's Spark and Python versions.
+FROM apache/spark:4.1.2
+
+USER root
+RUN pip3 install --no-cache-dir numpy jupyterlab
+
+# The image's spark user has HOME=/nonexistent; Jupyter needs a writable
+# home for its runtime/config directories.
+RUN mkdir -p /home/spark && chown spark:spark /home/spark
+ENV HOME=/home/spark
+
+# Make the Spark-bundled pyspark importable from the notebook kernel
+ENV PYTHONPATH=/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.9-src.zip
+
+USER spark
+WORKDIR /opt/app
+EXPOSE 8888
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", \
+     "--ServerApp.token=", "--ServerApp.password="]

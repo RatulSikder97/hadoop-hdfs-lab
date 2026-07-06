@@ -1,0 +1,81 @@
+# Spark standalone cluster for the PySpark ML assignment
+# ---------------------------------------------------------
+#   spark-master : cluster manager        UI -> http://localhost:8080
+#   spark-worker : one executor host      UI -> http://localhost:8081
+#   spark-client : where jobs are submitted from (driver runs here)
+#                  running app UI -> http://localhost:4040
+#   jupyter      : JupyterLab connected to the cluster -> http://localhost:8888
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose exec spark-client /opt/spark/bin/spark-submit part_a_titanic.py
+#   docker compose exec spark-client /opt/spark/bin/spark-submit part_b_mall.py
+#   open http://localhost:8888        # notebooks part_a / part_b
+#   docker compose down
+
+services:
+  spark-master:
+    build: .
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      # Cap each application at 2 cores so an idle notebook session cannot
+      # hold the whole cluster and block every other job.
+      - SPARK_MASTER_OPTS=-Dspark.deploy.defaultCores=2
+    ports:
+      - "8080:8080"   # master web UI
+      - "7077:7077"   # cluster submit port
+    volumes:
+      - ./:/opt/app   # project code + dataset/, shared with all nodes
+
+  spark-worker:
+    build: .
+    container_name: spark-worker
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_CORES=4
+      - SPARK_WORKER_MEMORY=4g
+    ports:
+      - "8081:8081"   # worker web UI
+    depends_on:
+      - spark-master
+    volumes:
+      - ./:/opt/app   # executors read dataset/ from the same path as the driver
+
+  spark-client:
+    build: .
+    container_name: spark-client
+    command: sleep infinity   # idle container to exec spark-submit from
+    environment:
+      # The scripts read this to decide where to run; without it they
+      # fall back to local[*] so they still work outside Docker.
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    ports:
+      - "4040:4040"   # driver/application web UI while a job is running
+    depends_on:
+      - spark-master
+      - spark-worker
+    volumes:
+      - ./:/opt/app
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: spark-jupyter
+    environment:
+      # Notebook SparkSessions pick this up and run on the cluster;
+      # unset it (or run outside Docker) to fall back to local[*].
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    ports:
+      - "8888:8888"   # JupyterLab (no token, local use only)
+      - "4041:4040"   # Spark UI of the notebook's application
+    depends_on:
+      - spark-master
+      - spark-worker
+    volumes:
+      - ./:/opt/app

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.vscode/
+.DS_Store
+*.log
+*.txt
+report.docx
+report.html
+screenshots/
+PySpark ML.pdf
+archive.zip
