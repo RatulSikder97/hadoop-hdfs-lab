@@ -77,6 +77,24 @@ git checkout lab-3
 
 </td>
 </tr>
+<tr>
+<td colspan="2" valign="top">
+
+### ⚡ [Lab 4 — Machine Learning with PySpark MLlib](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-4)
+
+Move from MapReduce to Spark — train and evaluate ML models on a Spark standalone cluster in Docker.
+
+- 🚢 **Titanic survival prediction** — Logistic Regression pipeline (StringIndexer · OneHotEncoder · VectorAssembler), 82.8% accuracy / 0.89 AUC
+- 🛍️ **Mall customer segmentation** — K-Means (k=5) with StandardScaler, silhouette 0.58, five meaningful customer groups
+- 🐳 Spark 4.1.2 cluster on Docker Compose (master · worker · client · JupyterLab)
+- 📓 Notebooks with full outputs included
+
+```bash
+git checkout lab-4
+```
+
+</td>
+</tr>
 </table>
 
 ---
@@ -89,7 +107,7 @@ git clone https://github.com/RatulSikder97/hadoop-hdfs-lab.git
 cd hadoop-hdfs-lab
 
 # switch to the lab you want
-git checkout lab-1     # or: lab-2, lab-3
+git checkout lab-1     # or: lab-2, lab-3, lab-4
 
 # follow that lab's README to bring up the cluster
 docker compose up -d --build
@@ -115,6 +133,6 @@ docker compose up -d --build
 
 <div align="center">
 
-🌿 **Branches:** [`main`](https://github.com/RatulSikder97/hadoop-hdfs-lab) · [`lab-1`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-1) · [`lab-2`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-2) · [`lab-3`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-3)
+🌿 **Branches:** [`main`](https://github.com/RatulSikder97/hadoop-hdfs-lab) · [`lab-1`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-1) · [`lab-2`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-2) · [`lab-3`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-3) · [`lab-4`](https://github.com/RatulSikder97/hadoop-hdfs-lab/tree/lab-4)
 
 </div>
